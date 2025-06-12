@@ -235,7 +235,7 @@ def alterar_senha():
             c.execute("UPDATE usuarios SET senha=? WHERE username=?", (nova_senha, username))
             conn.commit()
             conn.close()
-            return redirect(url_for('login'))
+            return redirect(render_template('login'))
 
         conn.close()
         return render_template('alterar_senha.html', erro=erro)
