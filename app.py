@@ -214,10 +214,9 @@ def relatorio(user):
 @app.route('/alterar_senha', methods=['GET', 'POST'])
 @admin_required
 def alterar_senha(user=None):
-    erro = None  # Evita erro se não houver erro
-
+    erro = None
     if request.method == 'POST':
-        username = session['usuario']  # Usa o usuário logado
+        username = request.form['username']
         senha_atual = request.form['senha_atual']
         nova_senha = request.form['nova_senha']
         confirmar_senha = request.form['confirmar_senha']
@@ -225,11 +224,11 @@ def alterar_senha(user=None):
         conn = sqlite3.connect('banco.db')
         c = conn.cursor()
         c.execute("SELECT senha FROM usuarios WHERE username=?", (username,))
-        user = c.fetchone()
+        user_data = c.fetchone()
 
-        if not user:
+        if not user_data:
             erro = 'Usuário não encontrado.'
-        elif user[0] != senha_atual:
+        elif user_data[0] != senha_atual:
             erro = 'Senha atual incorreta.'
         elif nova_senha != confirmar_senha:
             erro = 'As senhas novas não coincidem.'
@@ -237,12 +236,10 @@ def alterar_senha(user=None):
             c.execute("UPDATE usuarios SET senha=? WHERE username=?", (nova_senha, username))
             conn.commit()
             conn.close()
-            return redirect(url_for('login'))  # <- aqui está a correção
+            return redirect(url_for('login'))  # CORRIGIDO
 
         conn.close()
-        return render_template('alterar_senha.html', erro=erro)
-
-    return render_template('alterar_senha.html')
+    return render_template('alterar_senha.html', erro=erro)
 
 
 @app.route('/editar_movimentacao/<int:id>', methods=['GET', 'POST'])
