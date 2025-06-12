@@ -84,12 +84,12 @@ def login():
         conn.close()
 
         if resultado and resultado[0] == senha:
-            resp = make_response(redirect('/produtos'))
+            resp = make_response(redirect('/index.html'))
             resp.set_cookie('user', username)
             return resp
         else:
             return render_template('login.html', erro="Usuário ou senha incorretos")
-    return render_template('index.html')
+    return render_template('login.html')
 
 @app.route('/logout')
 def logout():
