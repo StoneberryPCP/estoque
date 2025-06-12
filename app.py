@@ -212,45 +212,40 @@ def relatorio(user):
     return render_template('relatorio.html', movimentacoes=movimentacoes, user=user)
 
 @app.route('/alterar_senha', methods=['GET', 'POST'])
-def alterar_senha():
+@login_required
+def alterar_senha(user):
     erro = None
 
     if request.method == 'POST':
-        username = session.get('usuario')
-        if not username:
-            return redirect(url_for('login'))
-
         senha_atual = request.form.get('senha_atual')
         nova_senha = request.form.get('nova_senha')
         confirmar_senha = request.form.get('confirmar_senha')
 
-        # Verifica se algum campo está vazio
         if not senha_atual or not nova_senha or not confirmar_senha:
             erro = 'Por favor, preencha todos os campos.'
-            return render_template('alterar_senha.html', erro=erro)
+            return render_template('alterar_senha.html', erro=erro, user=user)
 
-        conn = sqlite3.connect('banco.db')
-        c = conn.cursor()
-        c.execute("SELECT senha FROM usuarios WHERE username=?", (username,))
-        user = c.fetchone()
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("SELECT senha FROM usuarios WHERE username = ?", (user,))
+        resultado = cursor.fetchone()
 
-        if not user:
+        if not resultado:
             erro = 'Usuário não encontrado.'
-        elif user[0] != senha_atual:
+        elif resultado[0] != senha_atual:
             erro = 'Senha atual incorreta.'
         elif nova_senha != confirmar_senha:
             erro = 'As senhas novas não coincidem.'
         else:
-            c.execute("UPDATE usuarios SET senha=? WHERE username=?", (nova_senha, username))
+            cursor.execute("UPDATE usuarios SET senha = ? WHERE username = ?", (nova_senha, user))
             conn.commit()
             conn.close()
-            return redirect(url_for('login'))
+            return redirect(url_for('logout'))  # Força login com nova senha
 
         conn.close()
-        return render_template('alterar_senha.html', erro=erro)
+        return render_template('alterar_senha.html', erro=erro, user=user)
 
-    return render_template('alterar_senha.html')
-
+    return render_template('alterar_senha.html', user=user)
 
 @app.route('/editar_movimentacao/<int:id>', methods=['GET', 'POST'])
 @login_required
