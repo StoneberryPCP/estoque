@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>{% block title %}Controle de Estoque{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header>
+    <nav>
+      <ul>
+        <li><a href="/">Início</a></li>
+        <li><a href="/produtos">Produtos</a></li>
+        <li><a href="/relatorio">Relatório</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main>
+    {% block content %}
+  <div class="home-image-container" style="text-align: center; margin-top: 50px;">
+    <img src="/static/logo_fundo.png" alt="Logo Stoneberry" style="max-width: 2000px;">
+  </div>
+    {% endblock %}
+  </main>
+
+  <footer>
+    <p>© 2025 Estoque Stoneberry - Dev. By Victor Neves</p>
+  </footer>
+</body>
+</html>

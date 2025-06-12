@@ -1,0 +1,257 @@
+/* Reset básico */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Fonte geral e fundo */
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f0f2f5;
+  color: #333;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Container do conteúdo principal */
+main {
+  flex: 1;
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 20px 40px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+/*botão de editar*/
+.btn-editar {
+  padding: 5px 10px;
+  background-color: #3498db;
+  color: white;
+  border-radius: 3px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.btn-editar:hover {
+  background-color: #2980b9;
+}
+/* Container do conteúdo principal */
+.main-alter {
+  flex: 1;
+  max-width: 900px;
+  margin: 30px auto;
+  padding: 20px 40px;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Header e menu */
+header {
+  background: #007bff;
+  padding: 15px 0;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+}
+
+nav ul {
+  list-style: none;
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+}
+
+nav ul li a {
+  text-decoration: none;
+  color: white;
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: color 0.3s ease;
+}
+
+nav ul li a:hover,
+nav ul li a.active {
+  color: #ffdd57;
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  padding: 15px 10px;
+  background: #222;
+  color: #ccc;
+  font-size: 0.9rem;
+}
+/* caixa de imagem */
+body, html {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+/* estilos dos botões */
+.btn-salvar,
+.btn-cancelar {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-weight: bold;
+  cursor: pointer;
+  text-decoration: none;
+  color: white !important;
+  transition: background-color 0.3s ease;
+  margin-right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 40px; /* garante altura uniforme */
+}
+
+.btn-salvar {
+  background-color: #4CAF50; /* verde */
+}
+
+.btn-salvar:hover {
+  background-color: #45a049;
+}
+
+.btn-cancelar {
+  background-color: #e74c3c; /* vermelho */
+}
+
+.btn-cancelar:hover {
+  background-color: #c0392b;
+}
+
+
+.home-background {
+  /* Ocupa toda a viewport */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+
+  /* Imagem de fundo */
+  background-image: url('/static/logo_fundo.png'); /* Ajuste o caminho se necessário */
+  background-size: cover;      /* cobre toda a área sem distorcer */
+  background-position: center; /* centraliza a imagem */
+  background-repeat: no-repeat;
+
+  z-index: -1; /* fica atrás do conteúdo */
+}
+
+/* Conteúdo para ficar visível por cima do background */
+.main-content {
+  position: relative;
+  z-index: 1;
+  /* Estilize como quiser, por exemplo: */
+  color: white;
+  text-align: center;
+  padding-top: 20vh;
+  font-size: 2rem;
+  text-shadow: 1px 1px 5px rgba(0,0,0,0.7);
+}
+
+/* Títulos */
+h1, h2, h3 {
+  margin-bottom: 20px;
+  color: #222;
+}
+
+/* Botões */
+button, input[type="submit"] {
+  background-color: #007bff;
+  color: white;
+  border: none;
+  padding: 12px 25px;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover, input[type="submit"]:hover {
+  background-color: #0056b3;
+}
+
+/* Formulários */
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+input[type="text"], input[type="number"], input[type="float"], select {
+  padding: 10px 15px;
+  border: 1.8px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s ease;
+}
+
+input[type="text"]:focus, input[type="number"]:focus, input[type="float"]:focus, select:focus {
+  border-color: #007bff;
+  outline: none;
+}
+
+/* Tabelas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 15px;
+}
+
+table thead tr {
+  background-color: #007bff;
+  color: white;
+  font-weight: 700;
+}
+
+table th, table td {
+  padding: 12px 15px;
+  border: 1px solid #ddd;
+  text-align: center;
+}
+
+table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+table tbody tr:hover {
+  background-color: #e9f2ff;
+}
+
+/* Cores para tipos de movimentação (usado na tabela de relatório) */
+td.entrada {
+  color: green;
+  font-weight: bold;
+}
+
+td.saida {
+  color: red;
+  font-weight: bold;
+}
+
+/* Mensagens de erro */
+.error {
+  color: red;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+/* Layout do formulário de movimentação */
+.movimentar-form {
+  max-width: 400px;
+  margin: auto;
+}
+
+/* Botão específico para PDF */
+.pdf-btn {
+  background-color: #28a745 !important;
+}
+
+.pdf-btn:hover {
+  background-color: #218838 !important;
+}

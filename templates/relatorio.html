@@ -1,0 +1,36 @@
+{% extends 'index.html' %}
+
+{% block title %}Produtos{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <h1>Relatório de Movimentações</h1>
+
+    <button onclick="window.print()" class="pdf-btn" style="margin-bottom: 15px;">🖨️ Imprimir Relatório</button>
+
+    <table>
+      <tr>
+        <th>ID</th>
+        <th>Produto</th>
+        <th>Tipo</th>
+        <th>Quantidade</th>
+        <th>Data</th>
+        <th>Responsável</th>
+        <th>Ações</th>
+      </tr>
+      {% for m in movimentacoes %}
+      <tr>
+        <td>{{ m[0] }}</td>
+        <td>{{ m[1] }}</td>
+        <td>{{ m[2] }}</td>
+        <td>{{ m[3] }}</td>
+        <td>{{ m[4] }}</td>
+        <td>{{ m[5] }}</td>
+        <td>
+          <a href="{{ url_for('editar_movimentacao', id=m[0]) }}" class="btn-editar">Editar</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+{% endblock %}

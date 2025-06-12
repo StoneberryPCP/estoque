@@ -1,0 +1,65 @@
+{% extends 'index.html' %}
+
+{% block title %}Editar Movimentação{% endblock %}
+
+{% block content %}
+  <div class="container">
+  <h1>Editar Movimentação - Produto: {{ movimentacao[4] }}</h1>
+
+  <form method="post">
+    <label for="tipo">Tipo:</label>
+    <select id="tipo" name="tipo" required>
+      <option value="entrada" {% if movimentacao[1] == 'entrada' %}selected{% endif %}>Entrada</option>
+      <option value="saida" {% if movimentacao[1] == 'saida' %}selected{% endif %}>Saída</option>
+    </select>
+
+    <label for="quantidade">Quantidade:</label>
+    <input type="number" id="quantidade" name="quantidade" value="{{ movimentacao[2] }}" min="1" required>
+
+    <label for="responsavel">Responsável:</label>
+    <input type="text" id="responsavel" name="responsavel" value="{{ movimentacao[3] }}" required>
+
+  <button type="submit" class="btn-salvar">Salvar</button>
+  <a href="/relatorio" class="btn-cancelar">Cancelar</a>
+  </form>
+  </div>
+
+  <style>
+    form {
+      max-width: 400px;
+      margin-top: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      font-family: Arial, sans-serif;
+    }
+    label {
+      font-weight: bold;
+    }
+    input, select {
+      padding: 8px;
+      font-size: 1em;
+    }
+    button {
+      padding: 10px;
+      background-color: #3498db;
+      border: none;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      border-radius: 4px;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    .btn-cancelar {
+      margin-top: 10px;
+      text-decoration: none;
+      color: #555;
+      font-size: 0.9em;
+    }
+    .btn-cancelar:hover {
+      text-decoration: underline;
+    }
+  </style>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends 'index.html' %}
+
+{% block title %}Produtos{% endblock %}
+
+{% block content %}   
+ <div class="container">
+<h1>Login</h1>
+    {% if erro %}
+    <p style="color:red;">{{ erro }}</p>
+    {% endif %}
+    <form method="POST">
+        <label>Usuário:<br>
+            <input type="text" name="username" required>
+        </label><br><br>
+        <label>Senha:<br>
+            <input type="password" name="senha" required>
+        </label><br><br>
+        <button type="submit">Entrar</button>
+    </form>
+    </div>
+    {% endblock %}

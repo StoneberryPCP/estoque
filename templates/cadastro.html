@@ -1,0 +1,24 @@
+{% extends 'index.html' %}
+
+{% block title %}Cadastrar Usuário{% endblock %}
+
+{% block content %}
+<div class="container">
+  <h1>Cadastrar Novo Usuário</h1>
+  {% if erro %}
+  <p style="color:red;">{{ erro }}</p>
+  {% endif %}
+  <form method="POST">
+    <label>Usuário:<br>
+      <input type="text" name="username" required>
+    </label><br><br>
+    <label>Senha:<br>
+      <input type="password" name="senha" required>
+    </label><br><br>
+    <label>Confirmar Senha:<br>
+      <input type="password" name="senha_conf" required>
+    </label><br><br>
+    <button type="submit">Cadastrar</button>
+  </form>
+</div>
+{% endblock %}
