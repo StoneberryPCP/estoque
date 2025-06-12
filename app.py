@@ -1,12 +1,15 @@
-from flask import Flask, render_template, request, redirect, make_response
+import os
 import sqlite3
+from flask import Flask, render_template, request, redirect, make_response
 from datetime import datetime
 
 app = Flask(__name__)
 
-# --- Criação da tabela de usuarios ---
+BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+DB_PATH = os.path.join(BASE_DIR, 'estoque.db')
+
 def cria_tabela_usuarios():
-    conn = sqlite3.connect('estoque.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS usuarios (
@@ -18,9 +21,8 @@ def cria_tabela_usuarios():
     conn.commit()
     conn.close()
 
-# Criação da tabela de movimentações (com campo 'responsavel')
 def cria_tabela_movimentacoes():
-    conn = sqlite3.connect('estoque.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     cursor.execute('''
@@ -37,12 +39,10 @@ def cria_tabela_movimentacoes():
     conn.commit()
     conn.close()
 
-# Criação da tabela produtos + chamada das outras funções
 def init_db():
-    conn = sqlite3.connect('estoque.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
-    # Tabela produtos
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS produtos (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -53,31 +53,14 @@ def init_db():
     )
     ''')
 
-    # Tabela movimentações
     cria_tabela_movimentacoes()
+    cria_tabela_usuarios()
 
-    # Tabela usuários
-    cursor.execute('''
-    CREATE TABLE IF NOT EXISTS usuarios (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT NOT NULL UNIQUE,
-        senha TEXT NOT NULL
-    )
-    ''')
-
-    # Cria o admin se não existir
     cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
     if not cursor.fetchone():
         cursor.execute("INSERT INTO usuarios (username, senha) VALUES (?, ?)", ('admin', '292078'))
-        print("Usuário admin criado com senha 'admin'")
+        print("Usuário admin criado com senha 'admin123'")
 
-    conn.commit()
-    conn.close()
-
-    # Cria usuário admin padrão se não existir
-    conn = sqlite3.connect('estoque.db')
-    cursor = conn.cursor()
-    cursor.execute("INSERT OR IGNORE INTO usuarios (username, senha) VALUES (?, ?)", ('admin', 'admin123'))
     conn.commit()
     conn.close()
 
@@ -88,7 +71,7 @@ def login():
         username = request.form['username']
         senha = request.form['senha']
 
-        conn = sqlite3.connect('estoque.db')
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         cursor.execute('SELECT senha FROM usuarios WHERE username = ?', (username,))
         resultado = cursor.fetchone()
@@ -140,7 +123,7 @@ def index():
 @app.route('/produtos')
 @login_required
 def produtos(user):
-    conn = sqlite3.connect('estoque.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM produtos')
     produtos = cursor.fetchall()
@@ -165,7 +148,7 @@ def add_produto(user):
     except ValueError:
         return "Erro: Preço ou estoque inválido!", 400
 
-    conn = sqlite3.connect('estoque.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
     cursor.execute('INSERT INTO produtos (nome, categoria, preco, estoque) VALUES (?, ?, ?, ?)',
                    (nome, categoria, preco, estoque))
@@ -177,7 +160,7 @@ def add_produto(user):
 @app.route('/movimentar/<int:produto_id>', methods=['GET', 'POST'])
 @login_required
 def movimentar(produto_id, user):
-    conn = sqlite3.connect('estoque.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     if request.method == 'POST':
@@ -209,7 +192,7 @@ def movimentar(produto_id, user):
 @app.route('/relatorio')
 @login_required
 def relatorio(user):
-    conn = sqlite3.connect('estoque.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     cursor.execute('''
@@ -227,7 +210,7 @@ def relatorio(user):
 @app.route('/editar_movimentacao/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_movimentacao(id, user):
-    conn = sqlite3.connect('estoque.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     if request.method == 'POST':
@@ -235,21 +218,18 @@ def editar_movimentacao(id, user):
         quantidade = int(request.form['quantidade'])
         responsavel = request.form['responsavel']
 
-        # Pega dados antigos para ajustar estoque
         cursor.execute('SELECT produto_id, quantidade, tipo FROM movimentacoes WHERE id = ?', (id,))
         mov = cursor.fetchone()
         produto_id = mov[0]
         quantidade_antiga = mov[1]
         tipo_antigo = mov[2]
 
-        # Atualiza movimentação
         cursor.execute('''
             UPDATE movimentacoes 
             SET tipo = ?, quantidade = ?, responsavel = ?
             WHERE id = ?
         ''', (tipo, quantidade, responsavel, id))
 
-        # Ajusta estoque
         cursor.execute('SELECT estoque FROM produtos WHERE id = ?', (produto_id,))
         estoque_atual = cursor.fetchone()[0]
 
@@ -297,7 +277,7 @@ def cadastro(user):
         if senha != senha_conf:
             return render_template('cadastro.html', erro='Senhas não conferem', user=user)
 
-        conn = sqlite3.connect('estoque.db')
+        conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
         try:
             cursor.execute('INSERT INTO usuarios (username, senha) VALUES (?, ?)', (username, senha))
@@ -310,11 +290,11 @@ def cadastro(user):
 
     return render_template('cadastro.html', user=user)
 
-# --- Rota relatório PDF (não alterada, apenas login_required) ---
+# --- Rota relatório PDF ---
 @app.route('/relatorio_pdf')
 @login_required
 def relatorio_pdf(user):
-    conn = sqlite3.connect('estoque.db')
+    conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
     cursor.execute('''
@@ -331,4 +311,4 @@ def relatorio_pdf(user):
 
 if __name__ == '__main__':
     init_db()
-    app.run(debug=True)
+    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
