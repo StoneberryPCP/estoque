@@ -213,13 +213,21 @@ def relatorio(user):
 
 @app.route('/alterar_senha', methods=['GET', 'POST'])
 def alterar_senha():
-    erro = None  # Evita erro se não houver erro
+    erro = None
 
     if request.method == 'POST':
-        username = request.form['usuario']  # Usa o usuário logado
-        senha_atual = request.form['senha_atual']
-        nova_senha = request.form['nova_senha']
-        confirmar_senha = request.form['confirmar_senha']
+        username = session.get('usuario')
+        if not username:
+            return redirect(url_for('login'))
+
+        senha_atual = request.form.get('senha_atual')
+        nova_senha = request.form.get('nova_senha')
+        confirmar_senha = request.form.get('confirmar_senha')
+
+        # Verifica se algum campo está vazio
+        if not senha_atual or not nova_senha or not confirmar_senha:
+            erro = 'Por favor, preencha todos os campos.'
+            return render_template('alterar_senha.html', erro=erro)
 
         conn = sqlite3.connect('banco.db')
         c = conn.cursor()
@@ -236,7 +244,7 @@ def alterar_senha():
             c.execute("UPDATE usuarios SET senha=? WHERE username=?", (nova_senha, username))
             conn.commit()
             conn.close()
-            return redirect(url_for('login'))  # <- aqui está a correçãoo
+            return redirect(url_for('login'))
 
         conn.close()
         return render_template('alterar_senha.html', erro=erro)
