@@ -271,6 +271,33 @@ def editar_movimentacao(id, user):
         if not movimentacao:
             return "Movimentação não encontrada", 404
         return render_template('editar_movimentacao.html', movimentacao=movimentacao, user=user)
+    
+@app.route('/api/movimentacoes')
+@login_required
+def api_movimentacoes(user):
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+    cursor.execute('''
+        SELECT m.id, p.nome, m.tipo, m.quantidade, m.data_mov, m.responsavel
+        FROM movimentacoes m
+        JOIN produtos p ON m.produto_id = p.id
+        ORDER BY m.data_mov DESC
+    ''')
+    rows = cursor.fetchall()
+    conn.close()
+
+    # Converte para lista de dicts
+    result = []
+    for r in rows:
+        result.append({
+            'id': r[0],
+            'produto': r[1],
+            'tipo': r[2],
+            'quantidade': r[3],
+            'data_mov': r[4],
+            'responsavel': r[5]
+        })
+    return {'movimentacoes': result}
 
 @app.route('/cadastro', methods=['GET', 'POST'])
 @admin_required
