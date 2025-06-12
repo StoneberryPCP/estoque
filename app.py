@@ -213,7 +213,7 @@ def relatorio(user):
 
 @app.route('/alterar_senha', methods=['GET', 'POST'])
 @admin_required
-def alterar_senha():
+def alterar_senha(user=None):
     erro = None  # Evita erro se não houver erro
 
     if request.method == 'POST':
