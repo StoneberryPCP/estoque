@@ -1,0 +1,27 @@
+{% extends 'index.html' %}
+
+{% block title %}Alterar Senha{% endblock %}
+
+{% block content %}
+  <div class="container">
+    <h1>Alterar Senha</h1>
+    {% if erro %}
+      <p class="error">{{ erro }}</p>
+    {% endif %}
+    <form method="POST">
+      <label>Usuário:<br>
+        <input type="text" name="username" required>
+      </label><br><br>
+      <label>Senha Atual:<br>
+        <input type="password" name="senha_atual" required>
+      </label><br><br>
+      <label>Nova Senha:<br>
+        <input type="password" name="nova_senha" required>
+      </label><br><br>
+      <label>Confirmar Nova Senha:<br>
+        <input type="password" name="confirmar_senha" required>
+      </label><br><br>
+      <button type="submit">Alterar Senha</button>
+    </form>
+  </div>
+{% endblock %}

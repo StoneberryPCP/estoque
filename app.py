@@ -1,6 +1,6 @@
 import os
 import sqlite3
-from flask import Flask, render_template, request, redirect, make_response
+from flask import Flask, render_template, request, redirect, make_response, url_for, session
 from datetime import datetime
 import tempfile
 
@@ -214,8 +214,10 @@ def relatorio(user):
 @app.route('/alterar_senha', methods=['GET', 'POST'])
 @admin_required
 def alterar_senha():
+    erro = None  # Evita erro se não houver erro
+
     if request.method == 'POST':
-        username = request.form['username']
+        username = session['usuario']  # Usa o usuário logado
         senha_atual = request.form['senha_atual']
         nova_senha = request.form['nova_senha']
         confirmar_senha = request.form['confirmar_senha']
@@ -235,7 +237,7 @@ def alterar_senha():
             c.execute("UPDATE usuarios SET senha=? WHERE username=?", (nova_senha, username))
             conn.commit()
             conn.close()
-            return redirect(render_template('login'))
+            return redirect(url_for('login'))  # <- aqui está a correção
 
         conn.close()
         return render_template('alterar_senha.html', erro=erro)
