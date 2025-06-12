@@ -89,7 +89,7 @@ def login():
             return resp
         else:
             return render_template('login.html', erro="Usuário ou senha incorretos")
-    return render_template('login.html')
+    return render_template('index.html')
 
 @app.route('/logout')
 def logout():
