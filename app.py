@@ -216,7 +216,7 @@ def alterar_senha():
     erro = None  # Evita erro se não houver erro
 
     if request.method == 'POST':
-        username = session['usuario']  # Usa o usuário logado
+        username = request.form['usuario']  # Usa o usuário logado
         senha_atual = request.form['senha_atual']
         nova_senha = request.form['nova_senha']
         confirmar_senha = request.form['confirmar_senha']
