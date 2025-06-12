@@ -69,11 +69,6 @@ def init_db():
 init_db()
 
 
-@app.route('/inicio')
-@login_required
-def inicio(user):
-    return render_template('index.html', user=user)
-
 @app.route('/')
 def index():
     return redirect('/login')
@@ -189,6 +184,11 @@ def movimentar(produto_id, user):
         if not produto:
             return "Produto não encontrado", 404
         return render_template('movimentar.html', produto=produto, user=user)
+    
+@app.route('/inicio')
+@login_required
+def inicio(user):
+    return render_template('index.html', user=user)
 
 @app.route('/relatorio')
 @login_required
