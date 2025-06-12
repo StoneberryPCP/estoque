@@ -68,6 +68,12 @@ def init_db():
 
 init_db()
 
+
+@app.route('/inicio')
+@login_required
+def inicio(user):
+    return render_template('index.html', user=user)
+
 @app.route('/')
 def index():
     return redirect('/login')
@@ -84,7 +90,7 @@ def login():
         conn.close()
 
         if resultado and resultado[0] == senha:
-            resp = make_response(redirect('/index.html'))
+            resp = make_response(redirect('/inicio'))
             resp.set_cookie('user', username)
             return resp
         else:
