@@ -211,6 +211,38 @@ def relatorio(user):
 
     return render_template('relatorio.html', movimentacoes=movimentacoes, user=user)
 
+@app.route('/alterar_senha', methods=['GET', 'POST'])
+@admin_required
+def alterar_senha():
+    if request.method == 'POST':
+        username = request.form['username']
+        senha_atual = request.form['senha_atual']
+        nova_senha = request.form['nova_senha']
+        confirmar_senha = request.form['confirmar_senha']
+
+        conn = sqlite3.connect('banco.db')
+        c = conn.cursor()
+        c.execute("SELECT senha FROM usuarios WHERE username=?", (username,))
+        user = c.fetchone()
+
+        if not user:
+            erro = 'Usuário não encontrado.'
+        elif user[0] != senha_atual:
+            erro = 'Senha atual incorreta.'
+        elif nova_senha != confirmar_senha:
+            erro = 'As senhas novas não coincidem.'
+        else:
+            c.execute("UPDATE usuarios SET senha=? WHERE username=?", (nova_senha, username))
+            conn.commit()
+            conn.close()
+            return redirect(url_for('login'))
+
+        conn.close()
+        return render_template('alterar_senha.html', erro=erro)
+
+    return render_template('alterar_senha.html')
+
+
 @app.route('/editar_movimentacao/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_movimentacao(id, user):
