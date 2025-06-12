@@ -1,79 +1,72 @@
 import os
-import sqlite3
-from flask import Flask, render_template, request, redirect, make_response, url_for, session
+import psycopg2
+from flask import Flask, render_template, request, redirect, make_response, url_for, session, send_file
 from datetime import datetime
-import tempfile
+from functools import wraps
+
+# Use DATABASE_URL do Render
+DATABASE_URL = os.environ.get('DATABASE_URL') or 'postgresql://stoneberry_user:Wt71F648f1uEgsdEin0ZP3NjNiHykQCa@dpg-d15i2pm3jp1c73fu5m20-a.oregon-postgres.render.com/stoneberry'
 
 app = Flask(__name__)
 
-# Caminho do banco na pasta temporária (Render permite gravação aqui)
-DB_PATH = os.path.join(tempfile.gettempdir(), 'estoque.db')
+def connect_db():
+    return psycopg2.connect(DATABASE_URL)
 
-def cria_tabela_usuarios():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS usuarios (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            senha TEXT NOT NULL
-        )
-    ''')
-    conn.commit()
-    conn.close()
+def cria_tabela_usuarios(conn):
+    with conn.cursor() as cursor:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS usuarios (
+                id SERIAL PRIMARY KEY,
+                username TEXT UNIQUE NOT NULL,
+                senha TEXT NOT NULL
+            )
+        ''')
+        conn.commit()
 
-def cria_tabela_produtos():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS produtos (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT NOT NULL,
-            categoria TEXT,
-            preco REAL,
-            estoque INTEGER DEFAULT 0
-        )
-    ''')
-    conn.commit()
-    conn.close()
+def cria_tabela_produtos(conn):
+    with conn.cursor() as cursor:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS produtos (
+                id SERIAL PRIMARY KEY,
+                nome TEXT NOT NULL,
+                categoria TEXT,
+                preco REAL,
+                estoque INTEGER DEFAULT 0
+            )
+        ''')
+        conn.commit()
 
-def cria_tabela_movimentacoes():
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS movimentacoes (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            produto_id INTEGER NOT NULL,
-            tipo TEXT NOT NULL CHECK(tipo IN ('entrada', 'saida')),
-            quantidade INTEGER NOT NULL,
-            data_mov DATETIME DEFAULT CURRENT_TIMESTAMP,
-            responsavel TEXT,
-            FOREIGN KEY(produto_id) REFERENCES produtos(id)
-        )
-    ''')
-    conn.commit()
-    conn.close()
+def cria_tabela_movimentacoes(conn):
+    with conn.cursor() as cursor:
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS movimentacoes (
+                id SERIAL PRIMARY KEY,
+                produto_id INTEGER NOT NULL,
+                tipo TEXT NOT NULL CHECK(tipo IN ('entrada', 'saida')),
+                quantidade INTEGER NOT NULL,
+                data_mov TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                responsavel TEXT,
+                FOREIGN KEY(produto_id) REFERENCES produtos(id)
+            )
+        ''')
+        conn.commit()
 
 def init_db():
-    # Cria todas as tabelas
-    cria_tabela_usuarios()
-    cria_tabela_produtos()
-    cria_tabela_movimentacoes()
+    conn = connect_db()
+    cria_tabela_usuarios(conn)
+    cria_tabela_produtos(conn)
+    cria_tabela_movimentacoes(conn)
 
-    # Insere usuário admin padrão se não existir
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
-    if not cursor.fetchone():
-        cursor.execute("INSERT INTO usuarios (username, senha) VALUES (?, ?)", ('admin', 'admin123'))
-        print("Usuário admin criado com senha 'admin123'")
+    # Cria admin se não existir
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT * FROM usuarios WHERE username = 'admin'")
+        if not cursor.fetchone():
+            cursor.execute("INSERT INTO usuarios (username, senha) VALUES (%s, %s)", ('admin', 'admin123'))
+            print("Usuário admin criado com senha 'admin123'")
     conn.commit()
     conn.close()
 
-# Chama init_db ao iniciar a aplicação (garante criação do banco/tabelas)
 init_db()
-
-# --- Rotas ---
 
 @app.route('/')
 def index():
@@ -84,10 +77,9 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         senha = request.form['senha']
-
-        conn = sqlite3.connect(DB_PATH)
+        conn = connect_db()
         cursor = conn.cursor()
-        cursor.execute('SELECT senha FROM usuarios WHERE username = ?', (username,))
+        cursor.execute('SELECT senha FROM usuarios WHERE username = %s', (username,))
         resultado = cursor.fetchone()
         conn.close()
 
@@ -104,8 +96,6 @@ def logout():
     resp = make_response(redirect('/login'))
     resp.delete_cookie('user')
     return resp
-
-from functools import wraps
 
 def login_required(f):
     @wraps(f)
@@ -128,7 +118,7 @@ def admin_required(f):
 @app.route('/produtos')
 @login_required
 def produtos(user):
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_db()
     cursor = conn.cursor()
     cursor.execute('SELECT * FROM produtos')
     produtos = cursor.fetchall()
@@ -144,7 +134,7 @@ def add_produto(user):
     estoque_str = request.form['estoque']
 
     if not nome or not preco_str or not estoque_str:
-        return "Preencha todos os campos obrigatórios (nome, preço, estoque)!", 400
+        return "Preencha todos os campos obrigatórios!", 400
 
     try:
         preco = float(preco_str)
@@ -152,9 +142,9 @@ def add_produto(user):
     except ValueError:
         return "Erro: Preço ou estoque inválido!", 400
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_db()
     cursor = conn.cursor()
-    cursor.execute('INSERT INTO produtos (nome, categoria, preco, estoque) VALUES (?, ?, ?, ?)',
+    cursor.execute('INSERT INTO produtos (nome, categoria, preco, estoque) VALUES (%s, %s, %s, %s)',
                    (nome, categoria, preco, estoque))
     conn.commit()
     conn.close()
@@ -163,23 +153,23 @@ def add_produto(user):
 @app.route('/movimentar/<int:produto_id>', methods=['GET', 'POST'])
 @login_required
 def movimentar(produto_id, user):
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_db()
     cursor = conn.cursor()
 
     if request.method == 'POST':
         tipo = request.form['tipo']
         quantidade = int(request.form['quantidade'])
         responsavel = request.form.get('responsavel') or user
-        data = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        data = datetime.now()
 
-        cursor.execute('SELECT estoque FROM produtos WHERE id = ?', (produto_id,))
+        cursor.execute('SELECT estoque FROM produtos WHERE id = %s', (produto_id,))
         atual = cursor.fetchone()[0]
         novo = atual + quantidade if tipo == 'entrada' else atual - quantidade
 
-        cursor.execute('UPDATE produtos SET estoque = ? WHERE id = ?', (novo, produto_id))
+        cursor.execute('UPDATE produtos SET estoque = %s WHERE id = %s', (novo, produto_id))
         cursor.execute('''
             INSERT INTO movimentacoes (produto_id, tipo, quantidade, data_mov, responsavel)
-            VALUES (?, ?, ?, ?, ?)
+            VALUES (%s, %s, %s, %s, %s)
         ''', (produto_id, tipo, quantidade, data, responsavel))
 
         conn.commit()
@@ -187,7 +177,7 @@ def movimentar(produto_id, user):
         return redirect('/produtos')
 
     else:
-        cursor.execute('SELECT * FROM produtos WHERE id = ?', (produto_id,))
+        cursor.execute('SELECT * FROM produtos WHERE id = %s', (produto_id,))
         produto = cursor.fetchone()
         conn.close()
         if not produto:
@@ -197,9 +187,8 @@ def movimentar(produto_id, user):
 @app.route('/relatorio')
 @login_required
 def relatorio(user):
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_db()
     cursor = conn.cursor()
-
     cursor.execute('''
         SELECT m.id, p.nome, m.tipo, m.quantidade, m.data_mov, m.responsavel
         FROM movimentacoes m
@@ -208,49 +197,44 @@ def relatorio(user):
     ''')
     movimentacoes = cursor.fetchall()
     conn.close()
-
     return render_template('relatorio.html', movimentacoes=movimentacoes, user=user)
 
 @app.route('/alterar_senha', methods=['GET', 'POST'])
 @login_required
 def alterar_senha(user):
     erro = None
-
     if request.method == 'POST':
         senha_atual = request.form.get('senha_atual')
         nova_senha = request.form.get('nova_senha')
         confirmar_senha = request.form.get('confirmar_senha')
 
         if not senha_atual or not nova_senha or not confirmar_senha:
-            erro = 'Por favor, preencha todos os campos.'
-            return render_template('alterar_senha.html', erro=erro, user=user)
-
-        conn = sqlite3.connect(DB_PATH)
-        cursor = conn.cursor()
-        cursor.execute("SELECT senha FROM usuarios WHERE username = ?", (user,))
-        resultado = cursor.fetchone()
-
-        if not resultado:
-            erro = 'Usuário não encontrado.'
-        elif resultado[0] != senha_atual:
-            erro = 'Senha atual incorreta.'
-        elif nova_senha != confirmar_senha:
-            erro = 'As senhas novas não coincidem.'
+            erro = 'Preencha todos os campos.'
         else:
-            cursor.execute("UPDATE usuarios SET senha = ? WHERE username = ?", (nova_senha, user))
-            conn.commit()
+            conn = connect_db()
+            cursor = conn.cursor()
+            cursor.execute("SELECT senha FROM usuarios WHERE username = %s", (user,))
+            resultado = cursor.fetchone()
+
+            if not resultado:
+                erro = 'Usuário não encontrado.'
+            elif resultado[0] != senha_atual:
+                erro = 'Senha atual incorreta.'
+            elif nova_senha != confirmar_senha:
+                erro = 'As senhas não coincidem.'
+            else:
+                cursor.execute("UPDATE usuarios SET senha = %s WHERE username = %s", (nova_senha, user))
+                conn.commit()
+                conn.close()
+                return redirect(url_for('logout'))
+
             conn.close()
-            return redirect(url_for('logout'))  # Força login com nova senha
-
-        conn.close()
-        return render_template('alterar_senha.html', erro=erro, user=user)
-
-    return render_template('alterar_senha.html', user=user)
+    return render_template('alterar_senha.html', erro=erro, user=user)
 
 @app.route('/editar_movimentacao/<int:id>', methods=['GET', 'POST'])
 @login_required
 def editar_movimentacao(id, user):
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_db()
     cursor = conn.cursor()
 
     if request.method == 'POST':
@@ -258,25 +242,15 @@ def editar_movimentacao(id, user):
         quantidade = int(request.form['quantidade'])
         responsavel = request.form['responsavel']
 
-        # Pega dados antigos para ajustar estoque
-        cursor.execute('SELECT produto_id, quantidade, tipo FROM movimentacoes WHERE id = ?', (id,))
+        cursor.execute('SELECT produto_id, quantidade, tipo FROM movimentacoes WHERE id = %s', (id,))
         mov = cursor.fetchone()
         if not mov:
             conn.close()
             return "Movimentação não encontrada", 404
-        produto_id = mov[0]
-        quantidade_antiga = mov[1]
-        tipo_antigo = mov[2]
 
-        # Atualiza movimentação
-        cursor.execute('''
-            UPDATE movimentacoes 
-            SET tipo = ?, quantidade = ?, responsavel = ?
-            WHERE id = ?
-        ''', (tipo, quantidade, responsavel, id))
+        produto_id, quantidade_antiga, tipo_antigo = mov
 
-        # Ajusta estoque
-        cursor.execute('SELECT estoque FROM produtos WHERE id = ?', (produto_id,))
+        cursor.execute('SELECT estoque FROM produtos WHERE id = %s', (produto_id,))
         estoque_atual = cursor.fetchone()[0]
 
         if tipo_antigo == 'entrada':
@@ -289,7 +263,9 @@ def editar_movimentacao(id, user):
         else:
             estoque_atual -= quantidade
 
-        cursor.execute('UPDATE produtos SET estoque = ? WHERE id = ?', (estoque_atual, produto_id))
+        cursor.execute('UPDATE movimentacoes SET tipo = %s, quantidade = %s, responsavel = %s WHERE id = %s',
+                       (tipo, quantidade, responsavel, id))
+        cursor.execute('UPDATE produtos SET estoque = %s WHERE id = %s', (estoque_atual, produto_id))
 
         conn.commit()
         conn.close()
@@ -300,18 +276,18 @@ def editar_movimentacao(id, user):
             SELECT m.id, m.tipo, m.quantidade, m.responsavel, p.nome
             FROM movimentacoes m
             JOIN produtos p ON m.produto_id = p.id
-            WHERE m.id = ?
+            WHERE m.id = %s
         ''', (id,))
         movimentacao = cursor.fetchone()
         conn.close()
         if not movimentacao:
             return "Movimentação não encontrada", 404
         return render_template('editar_movimentacao.html', movimentacao=movimentacao, user=user)
-    
+
 @app.route('/api/movimentacoes')
 @login_required
 def api_movimentacoes(user):
-    conn = sqlite3.connect(DB_PATH)
+    conn = connect_db()
     cursor = conn.cursor()
     cursor.execute('''
         SELECT m.id, p.nome, m.tipo, m.quantidade, m.data_mov, m.responsavel
@@ -321,26 +297,11 @@ def api_movimentacoes(user):
     ''')
     rows = cursor.fetchall()
     conn.close()
-
-    # Converte para lista de dicts
-    result = []
-    for r in rows:
-        result.append({
-            'id': r[0],
-            'produto': r[1],
-            'tipo': r[2],
-            'quantidade': r[3],
-            'data_mov': r[4],
-            'responsavel': r[5]
-        })
+    result = [{
+        'id': r[0], 'produto': r[1], 'tipo': r[2],
+        'quantidade': r[3], 'data_mov': r[4], 'responsavel': r[5]
+    } for r in rows]
     return {'movimentacoes': result}
-
-from flask import send_file
-
-@app.route('/download_db')
-@admin_required
-def download_db(user):
-    return send_file(DB_PATH, as_attachment=True, download_name='estoque.db')
 
 @app.route('/cadastro', methods=['GET', 'POST'])
 @admin_required
@@ -349,23 +310,19 @@ def cadastro(user):
         username = request.form['username']
         senha = request.form['senha']
         senha_confirma = request.form['senha_confirma']
-
         if senha != senha_confirma:
             return render_template('cadastro.html', erro='As senhas não coincidem', user=user)
-
-        conn = sqlite3.connect(DB_PATH)
+        conn = connect_db()
         cursor = conn.cursor()
         try:
-            cursor.execute('INSERT INTO usuarios (username, senha) VALUES (?, ?)', (username, senha))
+            cursor.execute('INSERT INTO usuarios (username, senha) VALUES (%s, %s)', (username, senha))
             conn.commit()
             conn.close()
             return redirect('/login')
-        except sqlite3.IntegrityError:
+        except:
             conn.close()
             return render_template('cadastro.html', erro='Usuário já existe', user=user)
-
     return render_template('cadastro.html', user=user)
 
 if __name__ == '__main__':
-    # No Render, normalmente você não executa app.run, mas para testes locais:
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(debug=True)
