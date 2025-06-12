@@ -299,6 +299,13 @@ def api_movimentacoes(user):
         })
     return {'movimentacoes': result}
 
+from flask import send_file
+
+@app.route('/download_db')
+@admin_required
+def download_db(user):
+    return send_file(DB_PATH, as_attachment=True, download_name='estoque.db')
+
 @app.route('/cadastro', methods=['GET', 'POST'])
 @admin_required
 def cadastro(user):
